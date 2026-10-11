@@ -404,9 +404,25 @@ export function parseContractError(err: unknown): string {
 
   const message = errorObj.message || String(err);
 
+  // Wallet disconnection
+  if (message.includes('Wallet not connected')) {
+    return 'Wallet not connected. Please connect your Web3 wallet first.';
+  }
+
+  // Network issues
+  if (message.includes('NETWORK_ERROR') || message.includes('network error') || message.includes('could not detect network')) {
+    return 'Network connection issue with local RPC (http://127.0.0.1:8545). Please verify Hardhat node is running.';
+  }
+
+  // Nonce issues
+  if (message.includes('nonce') || message.includes('NONCE_EXPIRED')) {
+    return 'Transaction nonce conflict. Please reset your MetaMask account nonce or retry.';
+  }
+
   // User rejection
   if (
     errorObj.code === 'ACTION_REJECTED' ||
+    errorObj.code === 4001 ||
     message.includes('user rejected') ||
     message.includes('User denied transaction signature')
   ) {

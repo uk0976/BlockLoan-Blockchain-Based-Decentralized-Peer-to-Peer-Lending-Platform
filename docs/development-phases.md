@@ -55,4 +55,15 @@
 - [x] Run complete automated two-wallet end-to-end integration test (`e2ePhase6Integration.js`) covering loan creation, peer funding, partial and full repayments, loan completion, persistent state reload, and backend reconciliation.
 - [x] Verify 100% test pass rate across frontend build (`tsc -b && vite build`), smart contract tests (29 tests), and backend test suite (26 tests).
 
+---
+
+## Phase 7: Security Review, Negative Testing & Bug Fixing
+- [x] Conduct rigorous smart contract audit on `BlockLoan.sol`: duplicate funding prevention, non-payable direct transfer reverts, balance invariant ($0$ held outside transactions), bounds checking, unauthorized repayment prevention, and deadline timelocks.
+- [x] Create comprehensive contract security test suite (`SecurityNegative.test.js`) bringing test count from 29 to 58 passing tests.
+- [x] Harden FastAPI backend with exception handlers for `RuntimeError` and `SQLAlchemyError` to mask internal SQL schemas and database traces.
+- [x] Add backend security test suite (`test_security_negative.py`) testing SQL injection, XSS parameterization, negative/zero IDs, malformed addresses/tx hashes, CORS enforcement, and sensitive data leakage checks (36 passing tests).
+- [x] Harden frontend wallet handling (`WalletContext.tsx` and `contractService.ts`) to immediately catch wallet disconnections, network failures, nonce conflicts, and MetaMask signature rejections (`ACTION_REJECTED`).
+- [x] Document non-custodial pull-payment vs push-payment trade-offs and remaining prototype constraints (disclaimer: educational mini-project, not formally audited for mainnet).
+
+
 

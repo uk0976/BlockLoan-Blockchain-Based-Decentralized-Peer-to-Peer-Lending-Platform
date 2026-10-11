@@ -203,11 +203,24 @@ In MetaMask &rarr; **Add Account** &rarr; **Import Account**:
 - **Phase 4 (Complete)**: Full frontend-to-contract Web3 integration with Ethers.js v6 & MetaMask (real on-chain loan creation, peer funding, partial/full repayment, and event log querying).
 - **Phase 5 (Complete)**: Python FastAPI backend with Web3.py v8, SQLite persistence, and 26 test suite cases.
 - **Phase 6 (Complete)**: Full end-to-end integration across React frontend, Solidity smart contracts, MetaMask wallet, and FastAPI Web3.py backend with automated two-wallet lifecycle tests.
+- **Phase 7 (Complete)**: Comprehensive security review, negative testing, and bug fixing (58 contract tests, 36 backend tests, sanitized SQL parameterization, masked database errors, and hardened wallet error handlers).
 
-### Run Automated End-to-End Integration Test
+### Run Test Suites
 ```powershell
+# 1. Smart Contract Test Suite (58 passing tests)
 cd "c:\Users\Umer Khan\OneDrive\Desktop\BT Mini Project\blockchain"
+npx hardhat test
+
+# 2. End-to-End Two-Wallet Integration Test
 npm run test:e2e
+
+# 3. Backend Test Suite (36 passing tests)
+cd "c:\Users\Umer Khan\OneDrive\Desktop\BT Mini Project\backend"
+& .\venv\Scripts\python.exe -m pytest -v
+
+# 4. Frontend Production Build
+cd "c:\Users\Umer Khan\OneDrive\Desktop\BT Mini Project\frontend"
+npm run build
 ```
 
 

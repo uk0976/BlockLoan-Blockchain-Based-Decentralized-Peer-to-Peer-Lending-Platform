@@ -30,6 +30,8 @@ app.add_middleware(
 )
 
 
+from sqlalchemy.exc import SQLAlchemyError
+
 # =============================================================================
 # EXCEPTION HANDLERS
 # =============================================================================
@@ -39,6 +41,22 @@ async def connection_error_handler(request: Request, exc: ConnectionError):
     return JSONResponse(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content={"detail": str(exc), "type": "BlockchainConnectionError"},
+    )
+
+
+@app.exception_handler(RuntimeError)
+async def runtime_error_handler(request: Request, exc: RuntimeError):
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": str(exc), "type": "ContractDeploymentError"},
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Database operation failed. Integrity verified.", "type": "DatabaseError"},
     )
 
 

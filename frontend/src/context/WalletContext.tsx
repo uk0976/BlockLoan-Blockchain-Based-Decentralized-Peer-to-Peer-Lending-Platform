@@ -222,13 +222,17 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return await rpcProvider.getSigner(wallet.address || 0);
     }
 
+    if (!wallet.isConnected || !wallet.address) {
+      throw new Error("Wallet not connected. Please connect your Web3 wallet first.");
+    }
+
     const ethereum = (window as unknown as { ethereum?: unknown }).ethereum;
     if (!ethereum) {
       throw new Error("MetaMask is not available. Please install MetaMask to execute on-chain transactions.");
     }
     const provider = new BrowserProvider(ethereum as never);
     return await provider.getSigner();
-  }, [wallet.isDemoMode, wallet.address]);
+  }, [wallet.isDemoMode, wallet.isConnected, wallet.address]);
 
   const refreshBalance = useCallback(async () => {
     if (!wallet.address) return;
