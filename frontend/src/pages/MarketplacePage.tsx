@@ -16,7 +16,7 @@ import {
   AlertTriangle,
   Radio,
 } from 'lucide-react';
-import { MOCK_LOANS, calculateExpectedRepayment, formatAddress } from '../data/mockData';
+import { calculateExpectedRepayment, formatAddress } from '../data/mockData';
 import { Loan } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
@@ -36,7 +36,7 @@ export const MarketplacePage: React.FC = () => {
 
   const [loans, setLoans] = useState<Loan[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [dataSource, setDataSource] = useState<'contract' | 'fallback'>('contract');
+  const [dataSource, setDataSource] = useState<'contract' | 'empty'>('contract');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -45,23 +45,21 @@ export const MarketplacePage: React.FC = () => {
   const [fundingLoan, setFundingLoan] = useState<Loan | null>(null);
   const [isSubmittingFund, setIsSubmittingFund] = useState(false);
 
-  // Fetch loans from contract or fallback
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Fetch loans from contract and API
   const loadLoans = useCallback(async () => {
     setIsLoading(true);
+    setErrorMessage(null);
     try {
       const onChainLoans = await fetchAllLoansOnChain();
-      if (onChainLoans && onChainLoans.length > 0) {
-        setLoans(onChainLoans);
-        setDataSource('contract');
-      } else {
-        // Fallback to sample loans if smart contract has 0 loans created yet
-        setLoans(MOCK_LOANS);
-        setDataSource('fallback');
-      }
+      setLoans(onChainLoans || []);
+      setDataSource(onChainLoans && onChainLoans.length > 0 ? 'contract' : 'empty');
     } catch (err) {
-      console.warn('Failed to fetch on-chain loans, falling back to mock loans:', err);
-      setLoans(MOCK_LOANS);
-      setDataSource('fallback');
+      console.error('Failed to fetch on-chain loans:', err);
+      setErrorMessage('Failed to connect to local Hardhat node at http://127.0.0.1:8545. Please ensure your local Ethereum node is running.');
+      setLoans([]);
+      setDataSource('empty');
     } finally {
       setIsLoading(false);
     }
@@ -155,11 +153,11 @@ export const MarketplacePage: React.FC = () => {
             {dataSource === 'contract' ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <Radio className="w-3 h-3 animate-pulse text-emerald-400" />
-                <span>Live On-Chain ({loans.length})</span>
+                <span>On-Chain Verified ({loans.length})</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                <span>Demo Fallback Mode</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-800 text-slate-400 border border-slate-700">
+                <span>Contract Ledger (0 proposals)</span>
               </span>
             )}
           </div>
@@ -262,6 +260,22 @@ export const MarketplacePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Recoverable Error Banner */}
+      {errorMessage && (
+        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-300">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 text-rose-400" />
+            <p className="text-xs sm:text-sm font-medium">{errorMessage}</p>
+          </div>
+          <button
+            onClick={() => loadLoans()}
+            className="px-3.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-semibold rounded-xl border border-rose-500/40 transition-colors self-start sm:self-auto"
+          >
+            Retry Connection
+          </button>
+        </div>
+      )}
+
       {/* Loading indicator */}
       {isLoading ? (
         <div className="py-16 flex flex-col items-center justify-center space-y-3">
@@ -269,16 +283,27 @@ export const MarketplacePage: React.FC = () => {
           <p className="text-sm text-slate-400">Querying BlockLoan smart contract on Hardhat localhost...</p>
         </div>
       ) : filteredLoans.length === 0 ? (
-        <EmptyState
-          title="No Matching Loan Requests"
-          description="Adjust your search terms, status filter, or APR range to see available lending opportunities."
-          actionText="Reset Filters"
-          onAction={() => {
-            setSearchTerm('');
-            setStatusFilter('all');
-            setMaxAprFilter(30);
-          }}
-        />
+        loans.length === 0 ? (
+          <EmptyState
+            title="No Loan Proposals on Blockchain"
+            description="No peer-to-peer loan proposals have been created on the smart contract yet. Create your proposal to borrow test ETH."
+            actionText="Request New Loan"
+            onAction={() => {
+              window.location.href = '/borrower/create';
+            }}
+          />
+        ) : (
+          <EmptyState
+            title="No Matching Loan Requests"
+            description="Adjust your search terms, status filter, or APR range to see available lending opportunities."
+            actionText="Reset Filters"
+            onAction={() => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setMaxAprFilter(30);
+            }}
+          />
+        )
       ) : viewMode === 'grid' ? (
         /* Grid View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

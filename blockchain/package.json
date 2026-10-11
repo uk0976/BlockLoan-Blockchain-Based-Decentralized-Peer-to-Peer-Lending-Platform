@@ -10,6 +10,7 @@
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "seed:local": "hardhat run scripts/seedDemo.js --network localhost",
     "verify:local": "hardhat run scripts/verifyDeployment.js --network localhost",
+    "test:e2e": "hardhat run scripts/e2ePhase6Integration.js --network localhost",
     "clean": "hardhat clean"
   },
   "devDependencies": {

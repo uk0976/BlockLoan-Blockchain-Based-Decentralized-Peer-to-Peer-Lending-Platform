@@ -11,7 +11,7 @@ import {
   Loader2,
   Radio,
 } from 'lucide-react';
-import { MOCK_LOANS, calculateExpectedRepayment, formatAddress } from '../data/mockData';
+import { calculateExpectedRepayment, formatAddress } from '../data/mockData';
 import { Loan } from '../types';
 import { StatCard } from '../components/StatCard';
 import { StatusBadge } from '../components/StatusBadge';
@@ -45,16 +45,11 @@ export const BorrowerDashboardPage: React.FC = () => {
     setIsLoading(true);
     try {
       const onChainLoans = await fetchAllLoansOnChain();
-      if (onChainLoans && onChainLoans.length > 0) {
-        setAllLoans(onChainLoans);
-        setIsContractData(true);
-      } else {
-        setAllLoans(MOCK_LOANS);
-        setIsContractData(false);
-      }
+      setAllLoans(onChainLoans || []);
+      setIsContractData(true);
     } catch (err) {
-      console.warn('Failed to fetch on-chain loans for borrower dashboard:', err);
-      setAllLoans(MOCK_LOANS);
+      console.error('Failed to fetch on-chain loans for borrower dashboard:', err);
+      setAllLoans([]);
       setIsContractData(false);
     } finally {
       setIsLoading(false);
@@ -65,13 +60,12 @@ export const BorrowerDashboardPage: React.FC = () => {
     loadLoans();
   }, [loadLoans]);
 
-  // Filter loans belonging to the active borrower wallet, or show sample loans if wallet has none yet
+  // Filter loans belonging strictly to the active borrower wallet
   const userLoans = isConnected && address
     ? allLoans.filter((l) => l.borrower.toLowerCase() === address.toLowerCase())
-    : allLoans;
+    : [];
 
-  // If user connected but hasn't created loans yet, display empty state or list
-  const displayLoans = userLoans.length > 0 ? userLoans : isConnected ? [] : allLoans;
+  const displayLoans = userLoans;
 
   const totalBorrowed = displayLoans.reduce((acc, curr) => acc + curr.principalAmount, 0).toFixed(2);
   const totalRepaid = displayLoans.reduce((acc, curr) => acc + curr.repaidAmount, 0).toFixed(2);
@@ -252,12 +246,21 @@ export const BorrowerDashboardPage: React.FC = () => {
             <Loader2 className="w-8 h-8 animate-spin text-teal-400" />
             <p className="text-sm text-slate-400">Loading loan records from smart contract...</p>
           </div>
+        ) : !isConnected ? (
+          <EmptyState
+            title="Wallet Connection Required"
+            description="Please connect your MetaMask wallet to view your borrowed loans, repayment schedules, and outstanding balances."
+            actionText="Connect Wallet"
+            onAction={connectWallet}
+          />
         ) : displayLoans.length === 0 ? (
           <EmptyState
             title="No Loans Requested Yet"
-            description="You have not submitted any loan proposals with this wallet address."
+            description="You have not submitted any loan proposals with this connected wallet address."
             actionText="Request a Loan"
-            onAction={() => {}}
+            onAction={() => {
+              window.location.href = '/borrower/create';
+            }}
           />
         ) : (
           <div className="overflow-x-auto">

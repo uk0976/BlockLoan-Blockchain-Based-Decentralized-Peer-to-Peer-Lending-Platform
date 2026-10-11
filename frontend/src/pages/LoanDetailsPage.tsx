@@ -13,7 +13,7 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react';
-import { MOCK_LOANS, calculateExpectedRepayment, formatAddress } from '../data/mockData';
+import { calculateExpectedRepayment, formatAddress } from '../data/mockData';
 import { Loan, TransactionRecord } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { Modal } from '../components/Modal';
@@ -48,8 +48,11 @@ export const LoanDetailsPage: React.FC = () => {
   const [repayInput, setRepayInput] = useState<string>('');
   const [isActionPending, setIsActionPending] = useState(false);
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const loadLoanDetails = useCallback(async () => {
     setIsLoading(true);
+    setErrorMessage(null);
     try {
       const onChainData = await fetchLoanByIdOnChain(loanId);
       if (onChainData) {
@@ -57,10 +60,7 @@ export const LoanDetailsPage: React.FC = () => {
         setRemainingDebtEth(onChainData.remainingDueEth);
         setIsContractData(true);
       } else {
-        const fallback = MOCK_LOANS.find((l) => l.id === loanId) || MOCK_LOANS[0];
-        setLoan(fallback);
-        const exp = calculateExpectedRepayment(fallback.principalAmount, fallback.interestRateBps, fallback.durationDays);
-        setRemainingDebtEth(Math.max(0, exp - fallback.repaidAmount));
+        setLoan(null);
         setIsContractData(false);
       }
 
@@ -69,8 +69,8 @@ export const LoanDetailsPage: React.FC = () => {
       setEvents(onChainEvents);
     } catch (err) {
       console.warn('Failed to load loan on-chain:', err);
-      const fallback = MOCK_LOANS.find((l) => l.id === loanId) || MOCK_LOANS[0];
-      setLoan(fallback);
+      setErrorMessage('Could not load loan from blockchain. Verify that Hardhat node is running.');
+      setLoan(null);
       setIsContractData(false);
     } finally {
       setIsLoading(false);
@@ -81,7 +81,7 @@ export const LoanDetailsPage: React.FC = () => {
     loadLoanDetails();
   }, [loadLoanDetails]);
 
-  if (!loan && isLoading) {
+  if (isLoading) {
     return (
       <div className="py-24 flex flex-col items-center justify-center space-y-3">
         <Loader2 className="w-8 h-8 animate-spin text-teal-400" />
@@ -90,7 +90,29 @@ export const LoanDetailsPage: React.FC = () => {
     );
   }
 
-  const activeLoan = loan || MOCK_LOANS[0];
+  if (!loan) {
+    return (
+      <div className="py-24 flex flex-col items-center justify-center space-y-4">
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-400">
+          <Layers className="w-8 h-8" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-white">Loan #{loanId} Not Found</h2>
+          <p className="text-sm text-slate-400 mt-1 max-w-md">
+            {errorMessage || 'This loan proposal does not exist on the smart contract.'}
+          </p>
+        </div>
+        <Link
+          to="/marketplace"
+          className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm rounded-xl transition-colors"
+        >
+          Return to Marketplace
+        </Link>
+      </div>
+    );
+  }
+
+  const activeLoan = loan;
 
   const expectedRepayment = calculateExpectedRepayment(
     activeLoan.principalAmount,

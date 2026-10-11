@@ -14,6 +14,7 @@ import {
   BLOCKLOAN_RPC_URL,
 } from '../contracts/contractConfig';
 import { Loan, LoanStatus, TransactionRecord, TransactionAction } from '../types';
+import { apiService, BackendLoanResponse } from './apiService';
 
 /**
  * Get a read-only contract instance.
@@ -86,20 +87,23 @@ export function getLoanMetadata(loanId: number): { title?: string; purpose?: str
 /**
  * Transform raw contract struct into typed frontend Loan object
  */
-export function parseContractLoan(rawLoan: {
-  id: bigint;
-  borrower: string;
-  lender: string;
-  principalAmount: bigint;
-  interestRateBps: bigint;
-  durationSeconds: bigint;
-  createdAt: bigint;
-  fundedAt: bigint;
-  repaymentDeadline: bigint;
-  totalDue: bigint;
-  totalRepaid: bigint;
-  status: number | bigint;
-}): Loan {
+export function parseContractLoan(
+  rawLoan: {
+    id: bigint;
+    borrower: string;
+    lender: string;
+    principalAmount: bigint;
+    interestRateBps: bigint;
+    durationSeconds: bigint;
+    createdAt: bigint;
+    fundedAt: bigint;
+    repaymentDeadline: bigint;
+    totalDue: bigint;
+    totalRepaid: bigint;
+    status: number | bigint;
+  },
+  backendMeta?: BackendLoanResponse | null
+): Loan {
   const statusNum = Number(rawLoan.status);
   const durationSec = Number(rawLoan.durationSeconds);
   const durationDays = Math.max(1, Math.round(durationSec / 86400));
@@ -107,10 +111,14 @@ export function parseContractLoan(rawLoan: {
   const totalRepaidEth = Number(formatEther(rawLoan.totalRepaid));
   const idNum = Number(rawLoan.id);
 
-  const cachedMeta = getLoanMetadata(idNum);
-  const title = cachedMeta?.title || `Loan Proposal #${idNum.toString()}`;
+  const localMeta = getLoanMetadata(idNum);
+  const title =
+    backendMeta?.title ||
+    localMeta?.title ||
+    `Loan Proposal #${idNum.toString()}`;
   const purpose =
-    cachedMeta?.purpose ||
+    backendMeta?.purpose ||
+    localMeta?.purpose ||
     `Peer credit facility for ${principalEth} ETH at ${(Number(rawLoan.interestRateBps) / 100).toFixed(1)}% APR (${durationDays} days)`;
 
   return {
@@ -136,7 +144,7 @@ export function parseContractLoan(rawLoan: {
 }
 
 /**
- * Retrieve all loans from on-chain contract state
+ * Retrieve all loans from on-chain contract state reconciled with backend metadata
  */
 export async function fetchAllLoansOnChain(provider?: Provider): Promise<Loan[]> {
   try {
@@ -145,6 +153,15 @@ export async function fetchAllLoansOnChain(provider?: Provider): Promise<Loan[]>
     const count = Number(countBigInt);
 
     if (count === 0) return [];
+
+    // Concurrently fetch metadata from FastAPI backend indexer
+    const backendLoans = await apiService.getLoans().catch(() => null);
+    const backendMap = new Map<number, BackendLoanResponse>();
+    if (backendLoans) {
+      for (const bLoan of backendLoans) {
+        backendMap.set(bLoan.id, bLoan);
+      }
+    }
 
     const promises: Promise<Loan>[] = [];
     for (let i = 1; i <= count; i++) {
@@ -162,7 +179,7 @@ export async function fetchAllLoansOnChain(provider?: Provider): Promise<Loan[]>
           totalDue: bigint;
           totalRepaid: bigint;
           status: number | bigint;
-        }) => parseContractLoan(raw))
+        }) => parseContractLoan(raw, backendMap.get(i)))
       );
     }
 
@@ -183,8 +200,11 @@ export async function fetchLoanByIdOnChain(
 ): Promise<{ loan: Loan; remainingDueEth: number } | null> {
   try {
     const contract = getReadOnlyContract(provider);
-    const rawLoan = await contract.getLoan(loanId);
-    const loan = parseContractLoan(rawLoan);
+    const [rawLoan, backendMeta] = await Promise.all([
+      contract.getLoan(loanId),
+      apiService.getLoanById(loanId).catch(() => null),
+    ]);
+    const loan = parseContractLoan(rawLoan, backendMeta);
 
     let remainingDueEth = 0;
     if (loan.status === 'ACTIVE') {

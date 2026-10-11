@@ -202,6 +202,13 @@ In MetaMask &rarr; **Add Account** &rarr; **Import Account**:
 - **Phase 3 (Complete)**: Local blockchain deployment pipeline, MetaMask configuration, demo seeding, and verification audit.
 - **Phase 4 (Complete)**: Full frontend-to-contract Web3 integration with Ethers.js v6 & MetaMask (real on-chain loan creation, peer funding, partial/full repayment, and event log querying).
 - **Phase 5 (Complete)**: Python FastAPI backend with Web3.py v8, SQLite persistence, and 26 test suite cases.
+- **Phase 6 (Complete)**: Full end-to-end integration across React frontend, Solidity smart contracts, MetaMask wallet, and FastAPI Web3.py backend with automated two-wallet lifecycle tests.
+
+### Run Automated End-to-End Integration Test
+```powershell
+cd "c:\Users\Umer Khan\OneDrive\Desktop\BT Mini Project\blockchain"
+npm run test:e2e
+```
 
 
 ---

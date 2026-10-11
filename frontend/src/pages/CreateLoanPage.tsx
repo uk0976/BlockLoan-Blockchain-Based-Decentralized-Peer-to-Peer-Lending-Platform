@@ -18,6 +18,7 @@ import {
   parseContractError,
   saveLoanMetadata,
 } from '../services/contractService';
+import { apiService } from '../services/apiService';
 import { Modal } from '../components/Modal';
 
 export const CreateLoanPage: React.FC = () => {
@@ -94,9 +95,16 @@ export const CreateLoanPage: React.FC = () => {
       setSubmittingStep('Submitting createLoan transaction to blockchain...');
       const result = await createLoanOnChain(signer, principalEth, interestBps, durationSeconds);
 
-      // Save user metadata locally for rich display
+      // Save user metadata locally and synchronize with FastAPI backend
       if (result.loanId > 0) {
         saveLoanMetadata(result.loanId, { title, purpose });
+        await apiService
+          .saveLoanMetadata(result.loanId, {
+            title,
+            purpose,
+            collateral_description: collateralEth ? `${collateralEth} ETH` : undefined,
+          })
+          .catch((e) => console.warn('Could not sync metadata with backend:', e));
       }
 
       await refreshBalance();

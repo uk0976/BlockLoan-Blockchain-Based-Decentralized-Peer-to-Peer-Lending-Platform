@@ -10,31 +10,38 @@ import {
   Loader2,
   Radio,
 } from 'lucide-react';
-import { MOCK_LOANS, formatAddress } from '../data/mockData';
+import { formatAddress } from '../data/mockData';
 import { Loan } from '../types';
 import { StatCard } from '../components/StatCard';
 import { StatusBadge } from '../components/StatusBadge';
 import { fetchAllLoansOnChain } from '../services/contractService';
+import { apiService, BackendAdminStats, BackendBlockchainStatus } from '../services/apiService';
 
 export const AdminDashboardPage: React.FC = () => {
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [adminStats, setAdminStats] = useState<BackendAdminStats | null>(null);
+  const [nodeStatus, setNodeStatus] = useState<BackendBlockchainStatus | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isContractData, setIsContractData] = useState<boolean>(false);
 
-  const loadLoans = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const onChainLoans = await fetchAllLoansOnChain();
-      if (onChainLoans && onChainLoans.length > 0) {
+      const [onChainLoans, stats, status] = await Promise.all([
+        fetchAllLoansOnChain(),
+        apiService.getAdminStatistics().catch(() => null),
+        apiService.getBlockchainStatus().catch(() => null),
+      ]);
+
+      if (onChainLoans) {
         setLoans(onChainLoans);
         setIsContractData(true);
-      } else {
-        setLoans(MOCK_LOANS);
-        setIsContractData(false);
       }
+      if (stats) setAdminStats(stats);
+      if (status) setNodeStatus(status);
     } catch (err) {
-      console.warn('Failed to load loans for admin dashboard:', err);
-      setLoans(MOCK_LOANS);
+      console.warn('Failed to load data for admin dashboard:', err);
+      setLoans([]);
       setIsContractData(false);
     } finally {
       setIsLoading(false);
@@ -42,13 +49,21 @@ export const AdminDashboardPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadLoans();
-  }, [loadLoans]);
+    loadData();
+  }, [loadData]);
 
-  const totalVolume = loans.reduce((acc, curr) => acc + curr.principalAmount, 0).toFixed(2);
-  const activeLoans = loans.filter((l) => l.status === 'ACTIVE').length;
-  const completedLoans = loans.filter((l) => l.status === 'COMPLETED').length;
-  const defaultedLoans = loans.filter((l) => l.status === 'DEFAULTED').length;
+  const totalVolume = adminStats
+    ? (adminStats.total_volume_eth ?? adminStats.total_principal_volume_eth ?? 0).toFixed(2)
+    : loans.reduce((acc, curr) => acc + curr.principalAmount, 0).toFixed(2);
+  const activeLoans = adminStats
+    ? adminStats.active_loans
+    : loans.filter((l) => l.status === 'ACTIVE').length;
+  const completedLoans = adminStats
+    ? adminStats.completed_loans
+    : loans.filter((l) => l.status === 'COMPLETED').length;
+  const defaultedLoans = adminStats
+    ? adminStats.defaulted_loans
+    : loans.filter((l) => l.status === 'DEFAULTED').length;
 
   return (
     <div className="space-y-8">
@@ -77,13 +92,67 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         <button
-          onClick={() => loadLoans()}
+          onClick={() => loadData()}
           disabled={isLoading}
           className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-navy-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all disabled:opacity-50 self-start sm:self-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-teal-400' : ''}`} />
           <span>Refresh Inspector</span>
         </button>
+      </div>
+
+      {/* Node Telemetry & Verification Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-4 rounded-2xl bg-navy-900 border border-slate-800 space-y-1">
+          <span className="text-xs text-slate-400 font-medium">RPC Node Status</span>
+          <div className="flex items-center gap-2 mt-1">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                nodeStatus?.is_connected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+              }`}
+            />
+            <span className="text-sm font-bold text-white">
+              {nodeStatus?.is_connected ? 'Hardhat Node Online' : 'RPC Disconnected'}
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 font-mono">
+            Chain ID: {nodeStatus?.chain_id ?? 31337} &bull; Block #{nodeStatus?.latest_block ?? '—'}
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-navy-900 border border-slate-800 space-y-1">
+          <span className="text-xs text-slate-400 font-medium">Contract Deployment</span>
+          <div className="flex items-center gap-2 mt-1">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                nodeStatus?.contract_deployed ? 'bg-emerald-400' : 'bg-amber-400'
+              }`}
+            />
+            <span className="text-sm font-bold text-white">
+              {nodeStatus?.contract_deployed ? 'Bytecode Verified' : 'Checking Contract...'}
+            </span>
+          </div>
+          <p className="text-[11px] text-teal-400 font-mono truncate" title={nodeStatus?.contract_address}>
+            {nodeStatus?.contract_address ?? '0x5FbDB2315678afecb367f032d93F642f64180aa3'}
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-navy-900 border border-slate-800 space-y-1">
+          <span className="text-xs text-slate-400 font-medium">FastAPI & SQLite Indexer</span>
+          <div className="flex items-center gap-2 mt-1">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                adminStats ? 'bg-teal-400' : 'bg-slate-500'
+              }`}
+            />
+            <span className="text-sm font-bold text-white">
+              {adminStats ? 'Live Web3.py Sync' : 'Direct Contract Fallback'}
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500">
+            Source: {adminStats?.source ?? 'Smart Contract RPC'} &bull; Indexed {adminStats?.total_loans ?? loans.length} loans
+          </p>
+        </div>
       </div>
 
       {/* Critical Protocol Governance Notice */}

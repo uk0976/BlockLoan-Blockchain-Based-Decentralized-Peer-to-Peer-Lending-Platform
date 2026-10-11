@@ -11,7 +11,7 @@ import {
   Loader2,
   Radio,
 } from 'lucide-react';
-import { MOCK_LOANS, calculateExpectedRepayment, formatAddress } from '../data/mockData';
+import { calculateExpectedRepayment, formatAddress } from '../data/mockData';
 import { Loan } from '../types';
 import { StatCard } from '../components/StatCard';
 import { StatusBadge } from '../components/StatusBadge';
@@ -40,16 +40,11 @@ export const LenderDashboardPage: React.FC = () => {
     setIsLoading(true);
     try {
       const onChainLoans = await fetchAllLoansOnChain();
-      if (onChainLoans && onChainLoans.length > 0) {
-        setAllLoans(onChainLoans);
-        setIsContractData(true);
-      } else {
-        setAllLoans(MOCK_LOANS);
-        setIsContractData(false);
-      }
+      setAllLoans(onChainLoans || []);
+      setIsContractData(true);
     } catch (err) {
-      console.warn('Failed to fetch loans on-chain for lender dashboard:', err);
-      setAllLoans(MOCK_LOANS);
+      console.error('Failed to fetch loans on-chain for lender dashboard:', err);
+      setAllLoans([]);
       setIsContractData(false);
     } finally {
       setIsLoading(false);
@@ -60,12 +55,12 @@ export const LenderDashboardPage: React.FC = () => {
     loadLoans();
   }, [loadLoans]);
 
-  // Filter funded loans
+  // Filter loans funded strictly by the active lender wallet
   const userFundedLoans = isConnected && address
     ? allLoans.filter((l) => l.lender && l.lender.toLowerCase() === address.toLowerCase())
-    : allLoans.filter((l) => l.status === 'ACTIVE' || l.status === 'COMPLETED' || l.status === 'DEFAULTED');
+    : [];
 
-  const displayLoans = userFundedLoans.length > 0 ? userFundedLoans : isConnected ? [] : allLoans.filter((l) => l.status !== 'OPEN');
+  const displayLoans = userFundedLoans;
 
   const totalFunded = displayLoans.reduce((acc, curr) => acc + curr.principalAmount, 0).toFixed(2);
   const activeCapital = displayLoans
@@ -222,12 +217,21 @@ export const LenderDashboardPage: React.FC = () => {
             <Loader2 className="w-8 h-8 animate-spin text-teal-400" />
             <p className="text-sm text-slate-400">Loading investment records from smart contract...</p>
           </div>
+        ) : !isConnected ? (
+          <EmptyState
+            title="Wallet Connection Required"
+            description="Please connect your MetaMask wallet to view the loans you have funded and monitor repayments."
+            actionText="Connect Wallet"
+            onAction={connectWallet}
+          />
         ) : displayLoans.length === 0 ? (
           <EmptyState
-            title="No Investments Active"
+            title="No Active Investments"
             description="Explore the marketplace to discover verified loan proposals with attractive risk-adjusted APRs."
-            actionText="Go to Marketplace"
-            onAction={() => {}}
+            actionText="Browse Marketplace"
+            onAction={() => {
+              window.location.href = '/marketplace';
+            }}
           />
         ) : (
           <div className="overflow-x-auto">

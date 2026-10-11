@@ -8,7 +8,7 @@ import {
   Loader2,
   Radio,
 } from 'lucide-react';
-import { MOCK_TRANSACTIONS, formatAddress } from '../data/mockData';
+import { formatAddress } from '../data/mockData';
 import { TransactionRecord, TransactionAction } from '../types';
 import { EmptyState } from '../components/EmptyState';
 import { useToast } from '../context/ToastContext';
@@ -28,16 +28,11 @@ export const TransactionHistoryPage: React.FC = () => {
     setIsLoading(true);
     try {
       const onChainEvents = await fetchContractEvents();
-      if (onChainEvents && onChainEvents.length > 0) {
-        setTransactions(onChainEvents);
-        setIsContractData(true);
-      } else {
-        setTransactions(MOCK_TRANSACTIONS);
-        setIsContractData(false);
-      }
+      setTransactions(onChainEvents || []);
+      setIsContractData(true);
     } catch (err) {
       console.warn('Failed to query contract event logs:', err);
-      setTransactions(MOCK_TRANSACTIONS);
+      setTransactions([]);
       setIsContractData(false);
     } finally {
       setIsLoading(false);

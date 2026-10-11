@@ -42,8 +42,17 @@
 - [x] Implement `BlockchainService` via Web3.py v8 reading on-chain loans, contract counts, transaction receipts, and decoding contract events (`LoanCreated`, `LoanFunded`, `RepaymentMade`, `LoanCompleted`, `LoanDefaulted`, `LoanCancelled`).
 - [x] Add robust node diagnostics with error detection for offline RPC, chain ID mismatch, and undeployed contract address.
 - [x] Configure SQLite persistence via SQLAlchemy models (`CachedLoan`, `LoanMetadata`, `UserProfile`, `CachedEventLog`) without treating cached data as live blockchain state.
-- [x] Implement Pydantic v2 schemas with Ethereum address and hash validators.
-- [x] Maintain zero custodial private keys, strictly read-only node client, and CORS whitelist for frontend (`5173`).
-- [x] Add comprehensive test suite in `backend/tests/` with 26 tests (25 passing, 1 live integration test for running node).
+---
+
+## Phase 6: Full Integration (Frontend + Smart Contract + MetaMask + FastAPI Backend)
+- [x] Configure frontend API client (`apiService.ts`) with configurable base URL (`VITE_BACKEND_API_URL`).
+- [x] Integrate frontend pages with FastAPI loan-reading, status, and metadata synchronization endpoints.
+- [x] Enforce contract reads as the single source of truth for all financial amounts and states; reconcile metadata from backend without fake mock fallbacks.
+- [x] Implement instant UI state refresh (balances, loans, events) upon confirmed on-chain transactions.
+- [x] Strict wallet-based filtering for Borrower and Lender dashboards with actionable empty states.
+- [x] Connect Admin Dashboard to live FastAPI telemetries (`/api/admin/statistics`, `/api/blockchain/status`) and on-chain contract audits.
+- [x] Prevent duplicate submissions during pending transactions and catch user rejections (`ACTION_REJECTED`) and custom Solidity errors cleanly.
+- [x] Run complete automated two-wallet end-to-end integration test (`e2ePhase6Integration.js`) covering loan creation, peer funding, partial and full repayments, loan completion, persistent state reload, and backend reconciliation.
+- [x] Verify 100% test pass rate across frontend build (`tsc -b && vite build`), smart contract tests (29 tests), and backend test suite (26 tests).
 
 
