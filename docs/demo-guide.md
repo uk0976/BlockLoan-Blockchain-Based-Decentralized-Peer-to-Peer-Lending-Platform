@@ -119,15 +119,20 @@ Before beginning your live evaluation demonstration, verify that the following t
 
 ---
 
-## 3. Screenshot Capture Checklist for Project Dossier
+## 3. High-Resolution Screenshots Gallery & Video Walkthrough
 
-Capture the following 8 screenshots during your demonstration rehearsal for inclusion in your college submission slides and report:
+The project includes pre-rendered high-resolution screenshots and an automated video walkthrough:
 
-- [ ] **Screenshot 1: Landing Page**: Full view of hero section, status ribbon, and dark navy/teal aesthetic.
-- [ ] **Screenshot 2: MetaMask Connection**: Truncated wallet address (`0x7099...`) and connected network badge (`Hardhat Localhost: 31337`).
-- [ ] **Screenshot 3: Create Loan Proposal Modal**: Form with principal, 8% APR, 30-day tenure, and dynamic yield calculator.
-- [ ] **Screenshot 4: Rejection Alert (Self-Funding)**: Negative test showing rejection modal when borrower tries to self-fund.
-- [ ] **Screenshot 5: Marketplace Active Listing**: Loan card with `OPEN` badge ready for funding.
-- [ ] **Screenshot 6: Lender Dashboard**: Capital deployed card and expected return calculations for Account #2.
-- [ ] **Screenshot 7: Borrower Repayment & Settlement**: Confirmed modal showing final payment receipt and transition to `COMPLETED`.
-- [ ] **Screenshot 8: Admin Statistics & Node Audit**: Protocol summary dashboard with 100% repayment rate and live RPC diagnostic panels.
+### Interactive Player & Video
+- **Interactive Player**: [`docs/demo-player.html`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/demo-player.html) (Open in any web browser)
+- **Animated Walkthrough Video (GIF)**: [`docs/demo-walkthrough.gif`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/demo-walkthrough.gif)
+
+### Screenshots Gallery
+- [x] **Screenshot 1: Landing Page**: [`docs/screenshots/01_landing_page.png`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/screenshots/01_landing_page.png) — Hero section, live status ribbon, and non-custodial custody indicator.
+- [x] **Screenshot 2: Demo Mode / Wallet Activation**: [`docs/screenshots/02_demo_mode_activated.png`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/screenshots/02_demo_mode_activated.png) — Truncated wallet addresses and role switching.
+- [x] **Screenshot 3: Credit Marketplace**: [`docs/screenshots/03_marketplace.png`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/screenshots/03_marketplace.png) — Active loan listings across `OPEN`, `ACTIVE`, and `COMPLETED` states.
+- [x] **Screenshot 4: Create Loan Proposal**: [`docs/screenshots/04_create_loan_form.png`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/screenshots/04_create_loan_form.png) — Form inputs with dynamic APR interest and total repayment calculator.
+- [x] **Screenshot 5: Borrower Dashboard**: [`docs/screenshots/05_borrower_dashboard.png`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/screenshots/05_borrower_dashboard.png) — Borrowing volume, repayment controls, and active loan countdowns.
+- [x] **Screenshot 6: Lender Dashboard**: [`docs/screenshots/06_lender_dashboard.png`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/screenshots/06_lender_dashboard.png) — Capital deployed, expected APR yield, and settled investments.
+- [x] **Screenshot 7: Protocol Admin & Node Audit**: [`docs/screenshots/07_admin_dashboard.png`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/screenshots/07_admin_dashboard.png) — Real-time telemetry, 100% repayment rate, and verified contract bytecode.
+- [x] **Screenshot 8: FastAPI Swagger UI**: [`docs/screenshots/08_fastapi_swagger_docs.png`](file:///c:/Users/Umer%20Khan/OneDrive/Desktop/BT%20Mini%20Project/docs/screenshots/08_fastapi_swagger_docs.png) — Interactive OpenAPI documentation and Web3.py RPC indexer.
