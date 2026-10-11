@@ -72,7 +72,7 @@ export const LandingPage: React.FC = () => {
       <section className="relative overflow-hidden pt-8 pb-12 sm:pt-14 sm:pb-16 text-center space-y-8">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs sm:text-sm font-semibold tracking-wide">
           <span className="w-2 h-2 rounded-full bg-teal-400 animate-ping" />
-          <span>College Mini-Project Prototype &bull; Phase 1 Frontend UI</span>
+          <span>College Mini-Project Prototype &bull; Phase 8 Full-Stack DApp</span>
         </div>
 
         <div className="max-w-4xl mx-auto space-y-6">
