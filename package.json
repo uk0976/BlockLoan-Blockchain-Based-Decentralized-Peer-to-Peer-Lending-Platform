@@ -12,6 +12,8 @@
     "blockchain:compile": "cd blockchain && npx hardhat compile",
     "blockchain:test": "cd blockchain && npx hardhat test",
     "blockchain:deploy:local": "cd blockchain && npx hardhat run scripts/deploy.js --network localhost",
+    "blockchain:seed:local": "cd blockchain && npx hardhat run scripts/seedDemo.js --network localhost",
+    "blockchain:verify:local": "cd blockchain && npx hardhat run scripts/verifyDeployment.js --network localhost",
     "backend:install": "cd backend && pip install -r requirements.txt",
     "backend:dev": "cd backend && uvicorn app.main:app --reload --port 8000",
     "frontend:dev": "cd frontend && npm run dev",

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict, Any
 
 from app.core.config import settings
 from app.database.session import engine, Base, get_db
@@ -37,6 +37,12 @@ def health_check():
         blockchain_connected=is_chain_live,
         version="0.1.0"
     )
+
+
+@app.get("/api/blockchain/status", tags=["Blockchain"])
+def get_blockchain_status() -> Dict[str, Any]:
+    """Detailed diagnosis of local Hardhat node, chain ID, and contract deployment."""
+    return blockchain_service.get_status_overview()
 
 
 @app.get("/api/loans", response_model=List[LoanResponse], tags=["Loans"])

@@ -1,11 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { BrowserProvider, formatEther } from 'ethers';
 import { WalletState } from '../types';
+import { BLOCKLOAN_CONTRACT_ADDRESS, BLOCKLOAN_CHAIN_ID } from '../contracts/contractConfig';
 
-interface WalletContextType extends WalletState {
+interface ExtendedWalletState extends WalletState {
+  isWrongNetwork: boolean;
+  contractAddress: string;
+  isContractDeployed: boolean | null;
+}
+
+interface WalletContextType extends ExtendedWalletState {
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   enableDemoRole: (role: 'borrower' | 'lender') => void;
+  switchToLocalhost: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -22,14 +30,29 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     isDemoMode: false,
   });
 
+  const [isContractDeployed, setIsContractDeployed] = useState<boolean | null>(null);
+
   const updateNetworkInfo = (chainIdHex: string | number) => {
-    const chainIdNum = typeof chainIdHex === 'string' ? parseInt(chainIdHex, 16) : chainIdHex;
+    const chainIdNum = typeof chainIdHex === 'string' ? parseInt(chainIdHex, 16) : Number(chainIdHex);
     let name = "Unknown Network";
     if (chainIdNum === 31337 || chainIdNum === 1337) name = "Hardhat Local (31337)";
     else if (chainIdNum === 11155111) name = "Sepolia Testnet";
     else if (chainIdNum === 1) name = "Ethereum Mainnet (Unsupported)";
     return { chainIdNum, name };
   };
+
+  const checkContractOnChain = useCallback(async (provider: BrowserProvider, chainIdNum: number) => {
+    if (chainIdNum === BLOCKLOAN_CHAIN_ID && BLOCKLOAN_CONTRACT_ADDRESS) {
+      try {
+        const code = await provider.getCode(BLOCKLOAN_CONTRACT_ADDRESS);
+        setIsContractDeployed(code !== "0x" && code !== "0x0" && code.length > 2);
+      } catch {
+        setIsContractDeployed(false);
+      }
+    } else {
+      setIsContractDeployed(null);
+    }
+  }, []);
 
   // Connect to actual MetaMask wallet
   const connectWallet = useCallback(async () => {
@@ -58,6 +81,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const network = await provider.getNetwork();
       const { chainIdNum, name } = updateNetworkInfo(Number(network.chainId));
 
+      await checkContractOnChain(provider, chainIdNum);
+
       setWallet({
         address: activeAddress,
         chainId: chainIdNum,
@@ -76,7 +101,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         error: errorMsg,
       }));
     }
-  }, []);
+  }, [checkContractOnChain]);
 
   const disconnectWallet = useCallback(() => {
     setWallet({
@@ -89,6 +114,47 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       error: null,
       isDemoMode: false,
     });
+    setIsContractDeployed(null);
+  }, []);
+
+  // One-click switch MetaMask to Hardhat Localhost (31337)
+  const switchToLocalhost = useCallback(async () => {
+    const ethereum = (window as unknown as { ethereum?: { request: (args: unknown) => Promise<unknown> } }).ethereum;
+    if (!ethereum) return;
+
+    const hardhatChainIdHex = "0x7a69"; // 31337 in hex
+    try {
+      await ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: hardhatChainIdHex }],
+      });
+    } catch (switchError: unknown) {
+      // 4902 error code means the network has not been added to MetaMask yet
+      const errorObj = switchError as { code?: number };
+      if (errorObj?.code === 4902) {
+        try {
+          await ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: hardhatChainIdHex,
+                chainName: "Hardhat Localhost",
+                rpcUrls: ["http://127.0.0.1:8545"],
+                nativeCurrency: {
+                  name: "Test ETH",
+                  symbol: "ETH",
+                  decimals: 18,
+                },
+              },
+            ],
+          });
+        } catch (addError) {
+          console.error("Failed to add Hardhat network to MetaMask:", addError);
+        }
+      } else {
+        console.error("Failed to switch network:", switchError);
+      }
+    }
   }, []);
 
   // Demo mode for exploring UI with separate sample roles
@@ -106,7 +172,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     } else {
       setWallet({
-        address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906", // Hardhat Account #3
+        address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", // Hardhat Account #2
         chainId: 31337,
         networkName: "Hardhat Local (Simulated)",
         isConnected: true,
@@ -116,6 +182,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isDemoMode: true,
       });
     }
+    setIsContractDeployed(true);
   }, []);
 
   // Listen for account/chain changes if MetaMask is present
@@ -147,8 +214,26 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [wallet.isConnected, wallet.isDemoMode, disconnectWallet]);
 
+  const isWrongNetwork = Boolean(
+    wallet.isConnected &&
+    !wallet.isDemoMode &&
+    wallet.chainId !== null &&
+    wallet.chainId !== BLOCKLOAN_CHAIN_ID
+  );
+
   return (
-    <WalletContext.Provider value={{ ...wallet, connectWallet, disconnectWallet, enableDemoRole }}>
+    <WalletContext.Provider
+      value={{
+        ...wallet,
+        isWrongNetwork,
+        contractAddress: BLOCKLOAN_CONTRACT_ADDRESS,
+        isContractDeployed,
+        connectWallet,
+        disconnectWallet,
+        enableDemoRole,
+        switchToLocalhost,
+      }}
+    >
       {children}
     </WalletContext.Provider>
   );

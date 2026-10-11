@@ -8,7 +8,21 @@ import { Modal } from './Modal';
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
-  const { isConnected, isConnecting, address, balanceEth, networkName, isDemoMode, error, connectWallet, disconnectWallet, enableDemoRole } = useWallet();
+  const {
+    isConnected,
+    isConnecting,
+    address,
+    balanceEth,
+    networkName,
+    chainId,
+    isWrongNetwork,
+    switchToLocalhost,
+    isDemoMode,
+    error,
+    connectWallet,
+    disconnectWallet,
+    enableDemoRole
+  } = useWallet();
   const { showToast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
@@ -93,9 +107,17 @@ export const Navbar: React.FC = () => {
           {/* Wallet and Role Actions */}
           <div className="flex items-center gap-3">
             {isConnected && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-navy-900 border border-slate-800 rounded-xl text-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-slate-300 font-medium">{networkName || 'Local Network'}</span>
+              <div
+                onClick={isWrongNetwork ? () => switchToLocalhost() : undefined}
+                className={`hidden sm:flex items-center gap-2 px-3 py-1 bg-navy-900 border rounded-xl text-xs transition-colors ${
+                  isWrongNetwork
+                    ? 'border-rose-500/50 text-rose-300 cursor-pointer hover:bg-rose-500/10'
+                    : 'border-slate-800 text-slate-300'
+                }`}
+                title={isWrongNetwork ? 'Click to switch to Hardhat Localhost (31337)' : undefined}
+              >
+                <span className={`w-2 h-2 rounded-full ${isWrongNetwork ? 'bg-rose-400' : 'bg-emerald-400'} animate-pulse`} />
+                <span className="font-medium">{isWrongNetwork ? `Wrong Chain (${chainId})` : networkName || 'Local Network'}</span>
                 {isDemoMode && (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
                     DEMO
