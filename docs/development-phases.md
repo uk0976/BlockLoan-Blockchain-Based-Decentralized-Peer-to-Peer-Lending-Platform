@@ -1,41 +1,44 @@
 # BlockLoan — Incremental Development Roadmap
 
-## Phase 1: Skeleton & Environment Scaffolding (Current Phase)
+## Phase 1: Frontend UI & DApp Interface
 - [x] Create project monorepo structure (`frontend`, `backend`, `blockchain`, `docs`).
 - [x] Configure root and component `.gitignore` and `.env.example` templates.
-- [x] Establish Hardhat smart contract configuration and contract data structure stubs.
-- [x] Configure FastAPI backend structure with SQLite, SQLAlchemy, Web3.py, and Pydantic schemas.
-- [x] Configure React + Vite + TypeScript + Tailwind CSS frontend boilerplate with ethers.js support.
-- [x] Provide initial root documentation and push to GitHub repository.
+- [x] Build dark navy / teal financial design system.
+- [x] Build 8 complete responsive pages (Landing, Borrower, Lender, Marketplace, Create Loan, Details, Admin, Transactions).
 
 ---
 
 ## Phase 2: Solidity Smart Contract Implementation & Hardhat Testing
-- [ ] Implement `requestLoan(principal, interestBps, duration)` with required collateral deposit.
-- [ ] Implement `fundLoan(loanId)` with direct transfer of principal to borrower.
-- [ ] Implement `repayLoan(loanId)` with interest calculation and collateral return.
-- [ ] Implement `liquidateLoan(loanId)` enabling lender to seize collateral upon loan default.
-- [ ] Implement `cancelLoan(loanId)` for unfunded loans.
-- [ ] Add reentrancy guards and security checks (Checks-Effects-Interactions pattern).
-- [ ] Write comprehensive unit tests in Hardhat covering 100% of state transitions and edge cases (underfunding, double repayments, late repayments).
+- [x] Implement `BlockLoan.sol` with `OPEN`, `ACTIVE`, `COMPLETED`, `DEFAULTED`, `CANCELLED` states.
+- [x] Implement `createLoan()`, `fundLoan()`, `repayLoan()`, `markDefaulted()`, `cancelLoan()`.
+- [x] Implement simple-interest mathematical calculations and custom errors.
+- [x] Implement reentrancy protection (Checks-Effects-Interactions pattern).
+- [x] Write 23 passing unit tests in Hardhat covering 100% of state transitions and edge cases.
 
 ---
 
-## Phase 3: Backend Event Indexer & REST APIs
-- [ ] Build background event listener service using Web3.py listening for `LoanRequested`, `LoanFunded`, `LoanRepaid`, and `LoanLiquidated`.
+## Phase 3: Local Blockchain Deployment Pipeline & MetaMask Configuration
+- [x] Configure local Hardhat node (`chainId: 31337`, `http://127.0.0.1:8545`).
+- [x] Create automated deployment script (`deploy.js`) exporting address and ABI to frontend and backend.
+- [x] Create demo seeding script (`seedDemo.js`) and deployment verification audit (`verifyDeployment.js`).
+- [x] Document MetaMask connection setup and test account importing in `docs/local-network-setup.md`.
+
+---
+
+## Phase 4: Frontend Web3 Contract Integration with Ethers.js & MetaMask
+- [x] Implement live MetaMask wallet connect/disconnect with shortened address, balance display, and 1-click network switcher (`31337`).
+- [x] Implement `CreateLoanPage` calling `createLoan()` on-chain with tx receipt confirmation and assigned ID parsing.
+- [x] Implement `MarketplacePage` reading live loans on-chain and funding via `fundLoan()` with native test ETH.
+- [x] Implement `BorrowerDashboardPage` showing real debt obligations and partial/full repayments via `repayLoan()`.
+- [x] Implement `LenderDashboardPage` tracking funded investments and asserting defaults via `markDefaulted()`.
+- [x] Implement `LoanDetailsPage` and `TransactionHistoryPage` querying live events via `queryFilter()`.
+- [x] Test end-to-end two-wallet lifecycle (`Phase4Integration.test.js`) with 29 passing tests.
+- [x] Verify production build (`npm run build`) compiles with zero errors.
+
+---
+
+## Phase 5: Backend Indexer, REST API & SQLite Synchronization
+- [ ] Build background event listener service using Web3.py listening for `LoanCreated`, `LoanFunded`, `RepaymentMade`, `LoanCompleted`, and `LoanDefaulted`.
 - [ ] Store synchronized loan records in SQLite via SQLAlchemy.
-- [ ] Expose RESTful endpoints for querying active loans, borrower loans, lender loans, and platform statistics.
+- [ ] Expose RESTful endpoints for cached query acceleration and platform statistics.
 
----
-
-## Phase 4: Frontend Web3 Integration & UI Dashboards
-- [ ] Implement MetaMask wallet connect button and network verification (Hardhat 31337).
-- [ ] Build Borrower Dashboard: Loan request form with collateral estimation, active debt view, and one-click repayment.
-- [ ] Build Lender Marketplace: Open loan explorer, risk/collateral analysis, funding modal, and liquidation actions.
-- [ ] Real-time status notifications and transaction receipt modals.
-
----
-
-## Phase 5: End-to-End Integration, Demonstration & Final Report
-- [ ] End-to-end testing with two distinct MetaMask accounts (Borrower Account & Lender Account).
-- [ ] Complete project report, presentation deck, and demonstration scripts.

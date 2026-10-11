@@ -22,7 +22,7 @@ export const MOCK_LOANS: Loan[] = [
     durationDays: 60,
     createdAt: "2026-03-25T10:30:00Z",
     repaidAmount: 0,
-    status: "Requested",
+    status: "OPEN",
     txHash: "0x3e18a992bb1cf20272b1d3d63c483fefbfad2d9c12b77dbd7638069542a9b6c1",
   },
   {
@@ -39,7 +39,7 @@ export const MOCK_LOANS: Loan[] = [
     fundedAt: "2026-03-12T09:00:00Z",
     dueDate: "2026-06-10T09:00:00Z",
     repaidAmount: 2.15,
-    status: "Funded",
+    status: "ACTIVE",
     txHash: "0x9f5a7b88d3e7f4c281e0186938a4d7159c9a7217db1386d4e5f7a216c85e492b",
   },
   {
@@ -56,7 +56,7 @@ export const MOCK_LOANS: Loan[] = [
     fundedAt: "2026-02-16T11:20:00Z",
     dueDate: "2026-03-18T11:20:00Z",
     repaidAmount: 1.81, // fully repaid
-    status: "Repaid",
+    status: "COMPLETED",
     txHash: "0x1c8b32e85a49fb2193b2a8d38865bcfa4598d9317d698124efac0114b3e85290",
   },
   {
@@ -73,7 +73,7 @@ export const MOCK_LOANS: Loan[] = [
     fundedAt: "2026-01-22T10:00:00Z",
     dueDate: "2026-03-08T10:00:00Z", // Past due!
     repaidAmount: 0.5,
-    status: "Defaulted",
+    status: "DEFAULTED",
     txHash: "0x7b3e198ca398dc491028741fb6273461285038ec10825f38a5b28394e82649a1",
   },
   {
@@ -87,7 +87,7 @@ export const MOCK_LOANS: Loan[] = [
     durationDays: 120,
     createdAt: "2026-03-29T18:00:00Z",
     repaidAmount: 0,
-    status: "Requested",
+    status: "OPEN",
     txHash: "0x5d928c0b11a4e2873108d4e92a83617b4c8a2b5894172f84b65a39281c79a528",
   },
   {
@@ -104,7 +104,7 @@ export const MOCK_LOANS: Loan[] = [
     fundedAt: "2026-03-05T14:30:00Z",
     dueDate: "2026-09-01T14:30:00Z",
     repaidAmount: 1.2,
-    status: "Funded",
+    status: "ACTIVE",
     txHash: "0x4c2b9a78120e54d8931b2a7589c316742589e4719b6284351a92e85047b38152",
   }
 ];

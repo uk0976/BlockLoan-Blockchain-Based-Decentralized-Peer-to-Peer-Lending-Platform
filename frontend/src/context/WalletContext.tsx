@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { BrowserProvider, formatEther } from 'ethers';
+import { BrowserProvider, JsonRpcProvider, Signer, formatEther } from 'ethers';
 import { WalletState } from '../types';
-import { BLOCKLOAN_CONTRACT_ADDRESS, BLOCKLOAN_CHAIN_ID } from '../contracts/contractConfig';
+import { BLOCKLOAN_CONTRACT_ADDRESS, BLOCKLOAN_CHAIN_ID, BLOCKLOAN_RPC_URL } from '../contracts/contractConfig';
 
 interface ExtendedWalletState extends WalletState {
   isWrongNetwork: boolean;
@@ -14,6 +14,8 @@ interface WalletContextType extends ExtendedWalletState {
   disconnectWallet: () => void;
   enableDemoRole: (role: 'borrower' | 'lender') => void;
   switchToLocalhost: () => Promise<void>;
+  getSigner: () => Promise<Signer>;
+  refreshBalance: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -214,6 +216,42 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [wallet.isConnected, wallet.isDemoMode, disconnectWallet]);
 
+  const getSigner = useCallback(async (): Promise<Signer> => {
+    if (wallet.isDemoMode) {
+      const rpcProvider = new JsonRpcProvider(BLOCKLOAN_RPC_URL);
+      return await rpcProvider.getSigner(wallet.address || 0);
+    }
+
+    const ethereum = (window as unknown as { ethereum?: unknown }).ethereum;
+    if (!ethereum) {
+      throw new Error("MetaMask is not available. Please install MetaMask to execute on-chain transactions.");
+    }
+    const provider = new BrowserProvider(ethereum as never);
+    return await provider.getSigner();
+  }, [wallet.isDemoMode, wallet.address]);
+
+  const refreshBalance = useCallback(async () => {
+    if (!wallet.address) return;
+    try {
+      let balanceWei: bigint;
+      if (wallet.isDemoMode) {
+        const rpcProvider = new JsonRpcProvider(BLOCKLOAN_RPC_URL);
+        balanceWei = await rpcProvider.getBalance(wallet.address);
+      } else {
+        const ethereum = (window as unknown as { ethereum?: unknown }).ethereum;
+        if (!ethereum) return;
+        const provider = new BrowserProvider(ethereum as never);
+        balanceWei = await provider.getBalance(wallet.address);
+      }
+      setWallet((prev) => ({
+        ...prev,
+        balanceEth: Number(formatEther(balanceWei)).toFixed(4),
+      }));
+    } catch (e) {
+      console.warn("Failed to refresh balance:", e);
+    }
+  }, [wallet.address, wallet.isDemoMode]);
+
   const isWrongNetwork = Boolean(
     wallet.isConnected &&
     !wallet.isDemoMode &&
@@ -232,6 +270,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         disconnectWallet,
         enableDemoRole,
         switchToLocalhost,
+        getSigner,
+        refreshBalance,
       }}
     >
       {children}

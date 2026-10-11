@@ -1,4 +1,4 @@
-export type LoanStatus = 'Requested' | 'Funded' | 'Repaid' | 'Defaulted' | 'Liquidated' | 'Cancelled';
+export type LoanStatus = 'OPEN' | 'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'CANCELLED';
 
 export interface Loan {
   id: number;
@@ -6,16 +6,21 @@ export interface Loan {
   purpose: string;
   borrower: string;
   lender?: string;
-  principalAmount: number; // in ETH
-  collateralAmount: number; // in ETH
+  principalAmount: number; // in ETH formatted number
+  collateralAmount: number; // in ETH formatted number (optional in Phase 1-3)
   interestRateBps: number; // e.g. 850 = 8.5%
   durationDays: number;
+  durationSeconds?: number;
   createdAt: string;
   fundedAt?: string;
   dueDate?: string;
-  repaidAmount: number; // in ETH
+  repaidAmount: number; // in ETH formatted number
   status: LoanStatus;
   txHash?: string;
+  principalWei?: bigint;
+  totalDueWei?: bigint;
+  totalRepaidWei?: bigint;
+  isBlockchainVerified?: boolean;
 }
 
 export type TransactionAction = 'Request Loan' | 'Fund Loan' | 'Repay Loan' | 'Liquidate Collateral' | 'Cancel Loan';

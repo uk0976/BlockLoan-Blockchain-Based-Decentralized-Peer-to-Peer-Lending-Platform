@@ -1,23 +1,55 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Search,
   Copy,
   Check,
   CheckCircle2,
+  RefreshCw,
+  Loader2,
+  Radio,
 } from 'lucide-react';
 import { MOCK_TRANSACTIONS, formatAddress } from '../data/mockData';
-import { TransactionAction } from '../types';
+import { TransactionRecord, TransactionAction } from '../types';
 import { EmptyState } from '../components/EmptyState';
 import { useToast } from '../context/ToastContext';
+import { fetchContractEvents } from '../services/contractService';
 
 export const TransactionHistoryPage: React.FC = () => {
   const { showToast } = useToast();
+  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isContractData, setIsContractData] = useState<boolean>(false);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
+  const loadEvents = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const onChainEvents = await fetchContractEvents();
+      if (onChainEvents && onChainEvents.length > 0) {
+        setTransactions(onChainEvents);
+        setIsContractData(true);
+      } else {
+        setTransactions(MOCK_TRANSACTIONS);
+        setIsContractData(false);
+      }
+    } catch (err) {
+      console.warn('Failed to query contract event logs:', err);
+      setTransactions(MOCK_TRANSACTIONS);
+      setIsContractData(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
+
   const filteredTransactions = useMemo(() => {
-    return MOCK_TRANSACTIONS.filter((tx) => {
+    return transactions.filter((tx) => {
       const matchesSearch =
         tx.hash.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tx.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -29,7 +61,7 @@ export const TransactionHistoryPage: React.FC = () => {
 
       return matchesSearch && matchesAction;
     });
-  }, [searchTerm, actionFilter]);
+  }, [transactions, searchTerm, actionFilter]);
 
   const copyToClipboard = (hash: string) => {
     navigator.clipboard.writeText(hash);
@@ -56,11 +88,34 @@ export const TransactionHistoryPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="pb-6 border-b border-slate-800">
-        <h1 className="text-3xl font-black text-white tracking-tight">Transaction History</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Cryptographic ledger logs of on-chain borrowing, funding, and collateral escrow events.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-800">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-black text-white tracking-tight">Transaction History</h1>
+            {isContractData ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <Radio className="w-3 h-3 animate-pulse text-emerald-400" />
+                <span>On-Chain Logs ({transactions.length})</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <span>Demo Fallback Logs</span>
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-slate-400 mt-1">
+            Available indexed events queried directly from the BlockLoan smart contract filter logs.
+          </p>
+        </div>
+
+        <button
+          onClick={() => loadEvents()}
+          disabled={isLoading}
+          className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-navy-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all disabled:opacity-50 self-start sm:self-auto"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-teal-400' : ''}`} />
+          <span>Refresh Ledger</span>
+        </button>
       </div>
 
       {/* Filter and Search Bar */}
@@ -86,14 +141,19 @@ export const TransactionHistoryPage: React.FC = () => {
             <option value="request loan">Request Loan</option>
             <option value="fund loan">Fund Loan</option>
             <option value="repay loan">Repay Loan</option>
-            <option value="liquidate collateral">Liquidate Collateral</option>
+            <option value="liquidate collateral">Liquidate / Default</option>
           </select>
         </div>
       </div>
 
       {/* Transactions Table */}
       <div className="bg-navy-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
-        {filteredTransactions.length === 0 ? (
+        {isLoading ? (
+          <div className="py-16 flex flex-col items-center justify-center space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-teal-400" />
+            <p className="text-sm text-slate-400">Querying event logs from smart contract...</p>
+          </div>
+        ) : filteredTransactions.length === 0 ? (
           <EmptyState
             title="No Transactions Found"
             description="No transaction records match the specified search query or action filter."
@@ -110,8 +170,8 @@ export const TransactionHistoryPage: React.FC = () => {
                 <tr>
                   <th className="py-4 px-6">Tx Hash</th>
                   <th className="py-4 px-6">Action Type</th>
-                  <th className="py-4 px-6">Associated Loan</th>
-                  <th className="py-4 px-6">From / To</th>
+                  <th className="py-4 px-6">Loan ID</th>
+                  <th className="py-4 px-6">Origin Account</th>
                   <th className="py-4 px-6">Value (ETH)</th>
                   <th className="py-4 px-6">Status</th>
                   <th className="py-4 px-6 text-right">Timestamp</th>
@@ -122,7 +182,9 @@ export const TransactionHistoryPage: React.FC = () => {
                   <tr key={tx.id} className="hover:bg-slate-850/50 transition-colors">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2 font-mono text-xs text-white">
-                        <span>{tx.hash.substring(0, 10)}...{tx.hash.substring(tx.hash.length - 8)}</span>
+                        <span>
+                          {tx.hash.substring(0, 10)}...{tx.hash.substring(tx.hash.length - 8)}
+                        </span>
                         <button
                           onClick={() => copyToClipboard(tx.hash)}
                           className="p-1 text-slate-500 hover:text-white transition-colors"
@@ -139,23 +201,31 @@ export const TransactionHistoryPage: React.FC = () => {
                     </td>
 
                     <td className="py-4 px-6">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${getActionBadgeColor(tx.action)}`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${getActionBadgeColor(
+                          tx.action
+                        )}`}
+                      >
                         {tx.action}
                       </span>
                     </td>
 
-                    <td className="py-4 px-6 font-semibold text-white">
-                      Loan #{tx.loanId}
+                    <td className="py-4 px-6 font-semibold text-white font-mono">
+                      #{tx.loanId}
                     </td>
 
                     <td className="py-4 px-6 text-xs font-mono text-slate-400">
-                      <div>From: <span className="text-slate-300">{formatAddress(tx.from)}</span></div>
-                      {tx.to && <div>To: <span className="text-slate-300">{formatAddress(tx.to)}</span></div>}
+                      <div>
+                        From: <span className="text-slate-300">{formatAddress(tx.from)}</span>
+                      </div>
+                      {tx.to && (
+                        <div>
+                          To: <span className="text-slate-300">{formatAddress(tx.to)}</span>
+                        </div>
+                      )}
                     </td>
 
-                    <td className="py-4 px-6 font-bold text-white font-mono">
-                      {tx.amountEth} ETH
-                    </td>
+                    <td className="py-4 px-6 font-bold text-white font-mono">{tx.amountEth} ETH</td>
 
                     <td className="py-4 px-6">
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400">

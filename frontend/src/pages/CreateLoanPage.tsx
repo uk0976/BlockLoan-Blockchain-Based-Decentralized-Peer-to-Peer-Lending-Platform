@@ -7,14 +7,22 @@ import {
   Shield,
   AlertCircle,
   CheckCircle2,
+  Loader2,
+  ExternalLink,
 } from 'lucide-react';
 import { calculateExpectedRepayment } from '../data/mockData';
 import { useWallet } from '../context/WalletContext';
 import { useToast } from '../context/ToastContext';
+import {
+  createLoanOnChain,
+  parseContractError,
+  saveLoanMetadata,
+} from '../services/contractService';
+import { Modal } from '../components/Modal';
 
 export const CreateLoanPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isConnected, connectWallet } = useWallet();
+  const { isConnected, connectWallet, getSigner, refreshBalance, isWrongNetwork, switchToLocalhost } = useWallet();
   const { showToast } = useToast();
 
   const [title, setTitle] = useState('');
@@ -24,6 +32,8 @@ export const CreateLoanPage: React.FC = () => {
   const [durationDays, setDurationDays] = useState<string>('60');
   const [collateralEth, setCollateralEth] = useState<string>('3.75');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingStep, setSubmittingStep] = useState<string>('');
+  const [confirmedLoan, setConfirmedLoan] = useState<{ txHash: string; loanId: number } | null>(null);
 
   // Live calculation metrics
   const principal = parseFloat(principalEth) || 0;
@@ -39,12 +49,18 @@ export const CreateLoanPage: React.FC = () => {
   const interestAmount = (totalRepayment - principal).toFixed(4);
   const collateralRatio = principal > 0 ? ((collateral / principal) * 100).toFixed(0) : '0';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!isConnected) {
-      showToast('Wallet Connection Required', 'Please connect your Web3 wallet to submit a loan request.', 'warning');
+      showToast('Wallet Connection Required', 'Please connect your Web3 wallet to submit an on-chain loan request.', 'warning');
       connectWallet();
+      return;
+    }
+
+    if (isWrongNetwork) {
+      showToast('Wrong Network', 'Please switch your wallet to Hardhat Localhost (Chain ID: 31337).', 'error');
+      await switchToLocalhost();
       return;
     }
 
@@ -58,17 +74,45 @@ export const CreateLoanPage: React.FC = () => {
       return;
     }
 
-    setIsSubmitting(true);
+    if (apr > 50) {
+      showToast('APR Too High', 'Maximum allowed annual interest rate is 50% (5,000 bps).', 'error');
+      return;
+    }
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    if (days < 1 || days > 365) {
+      showToast('Invalid Duration', 'Loan duration must be between 1 day and 365 days.', 'error');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setSubmittingStep('Requesting wallet signature in MetaMask...');
+
+      const signer = await getSigner();
+      const durationSeconds = days * 86400;
+
+      setSubmittingStep('Submitting createLoan transaction to blockchain...');
+      const result = await createLoanOnChain(signer, principalEth, interestBps, durationSeconds);
+
+      // Save user metadata locally for rich display
+      if (result.loanId > 0) {
+        saveLoanMetadata(result.loanId, { title, purpose });
+      }
+
+      await refreshBalance();
+      setConfirmedLoan(result);
       showToast(
-        'Loan Proposal Created (Simulated)',
-        `Proposal for ${principal} ETH at ${apr}% APR published in UI preview mode. Smart contract deployment will activate in Phase 2.`,
+        'Loan Created on Smart Contract',
+        `Loan #${result.loanId} successfully deployed on-chain! Tx: ${result.txHash.substring(0, 10)}...`,
         'success'
       );
-      navigate('/marketplace');
-    }, 1200);
+    } catch (err) {
+      const errMsg = parseContractError(err);
+      showToast('Contract Transaction Failed', errMsg, 'error');
+    } finally {
+      setIsSubmitting(false);
+      setSubmittingStep('');
+    }
   };
 
   return (
@@ -219,9 +263,16 @@ export const CreateLoanPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-teal-500/20 disabled:opacity-50"
+              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-teal-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? 'Publishing Proposal...' : `Submit Loan Proposal (${principal} ETH)`}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{submittingStep || 'Broadcasting Transaction...'}</span>
+                </>
+              ) : (
+                `Deploy Loan Request to Contract (${principal} ETH)`
+              )}
             </button>
           </form>
         </div>
@@ -272,6 +323,59 @@ export const CreateLoanPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmedLoan && (
+        <Modal
+          isOpen={!!confirmedLoan}
+          onClose={() => setConfirmedLoan(null)}
+          title="Loan Successfully Created On-Chain!"
+          description="Your peer-to-peer loan proposal has been mined and recorded on the BlockLoan smart contract."
+        >
+          <div className="space-y-4">
+            <div className="bg-navy-950 rounded-xl p-4 border border-slate-800 space-y-2.5">
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>Assigned On-Chain Loan ID:</span>
+                <span className="font-mono text-teal-400 font-bold">#{confirmedLoan.loanId}</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>Principal Amount:</span>
+                <span className="font-mono text-white font-bold">{principal} ETH</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>Annual Interest Rate:</span>
+                <span className="font-mono text-emerald-400">{apr}% APR</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>Duration:</span>
+                <span className="font-mono text-slate-200">{days} Days</span>
+              </div>
+              <div className="pt-2 border-t border-slate-800 flex flex-col gap-1 text-xs">
+                <span className="text-slate-400">Transaction Hash:</span>
+                <span className="font-mono text-teal-300 text-[11px] break-all">{confirmedLoan.txHash}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => navigate('/marketplace')}
+                className="flex-1 py-2.5 px-4 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+              >
+                Go to Marketplace
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/loans/${confirmedLoan.loanId}`)}
+                className="flex-1 py-2.5 px-4 text-xs font-bold rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 transition-colors shadow-md flex items-center justify-center gap-1.5"
+              >
+                <span>View Loan Contract</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

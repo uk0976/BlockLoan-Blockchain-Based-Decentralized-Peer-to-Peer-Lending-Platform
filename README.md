@@ -194,8 +194,8 @@ In MetaMask &rarr; **Add Account** &rarr; **Import Account**:
 - **Phase 1 (Complete)**: Complete React frontend UI and design system across 8 DApp pages.
 - **Phase 2 (Complete)**: Secure Solidity smart contract (`BlockLoan.sol`) with 23 passing unit tests.
 - **Phase 3 (Complete)**: Local blockchain deployment pipeline, MetaMask configuration, demo seeding, and verification audit.
-- **Phase 4 (Upcoming)**: Full frontend-to-contract Web3 integration (interactive MetaMask transactions for creating, funding, and repaying loans).
-- **Phase 5**: Web3.py backend event indexing service and SQLite sync.
+- **Phase 4 (Complete)**: Full frontend-to-contract Web3 integration with Ethers.js v6 & MetaMask (real on-chain loan creation, peer funding, partial/full repayment, and event log querying).
+- **Phase 5 (Upcoming)**: Web3.py backend event indexing service and SQLite sync.
 
 ---
 

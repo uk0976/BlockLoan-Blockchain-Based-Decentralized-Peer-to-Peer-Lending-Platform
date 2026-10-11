@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import {
   ShieldAlert,
   Layers,
@@ -5,30 +6,84 @@ import {
   Landmark,
   Coins,
   CheckCircle,
+  RefreshCw,
+  Loader2,
+  Radio,
 } from 'lucide-react';
-import { MOCK_LOANS, MOCK_PROTOCOL_STATS, formatAddress } from '../data/mockData';
+import { MOCK_LOANS, formatAddress } from '../data/mockData';
+import { Loan } from '../types';
 import { StatCard } from '../components/StatCard';
 import { StatusBadge } from '../components/StatusBadge';
+import { fetchAllLoansOnChain } from '../services/contractService';
 
 export const AdminDashboardPage: React.FC = () => {
-  const totalVolume = MOCK_PROTOCOL_STATS.totalVolumeEth;
-  const activeLoans = MOCK_LOANS.filter((l) => l.status === 'Funded').length;
-  const completedLoans = MOCK_LOANS.filter((l) => l.status === 'Repaid').length;
-  const defaultedLoans = MOCK_LOANS.filter((l) => l.status === 'Defaulted').length;
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isContractData, setIsContractData] = useState<boolean>(false);
+
+  const loadLoans = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const onChainLoans = await fetchAllLoansOnChain();
+      if (onChainLoans && onChainLoans.length > 0) {
+        setLoans(onChainLoans);
+        setIsContractData(true);
+      } else {
+        setLoans(MOCK_LOANS);
+        setIsContractData(false);
+      }
+    } catch (err) {
+      console.warn('Failed to load loans for admin dashboard:', err);
+      setLoans(MOCK_LOANS);
+      setIsContractData(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLoans();
+  }, [loadLoans]);
+
+  const totalVolume = loans.reduce((acc, curr) => acc + curr.principalAmount, 0).toFixed(2);
+  const activeLoans = loans.filter((l) => l.status === 'ACTIVE').length;
+  const completedLoans = loans.filter((l) => l.status === 'COMPLETED').length;
+  const defaultedLoans = loans.filter((l) => l.status === 'DEFAULTED').length;
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="pb-6 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-black text-white tracking-tight">Protocol Monitoring (Admin)</h1>
-          <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-md bg-teal-500/10 text-teal-300 border border-teal-500/20">
-            Read-Only Inspector
-          </span>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-800">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-black text-white tracking-tight">Protocol Monitoring (Admin)</h1>
+            <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-md bg-teal-500/10 text-teal-300 border border-teal-500/20">
+              Read-Only Inspector
+            </span>
+            {isContractData ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <Radio className="w-3 h-3 animate-pulse text-emerald-400" />
+                <span>On-Chain Live State</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <span>Demo Fallback Mode</span>
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-slate-400 mt-1">
+            High-level operational metrics, health indices, and immutable contract state observation.
+          </p>
         </div>
-        <p className="text-sm text-slate-400 mt-1">
-          High-level operational metrics, health indices, and immutable contract state observation.
-        </p>
+
+        <button
+          onClick={() => loadLoans()}
+          disabled={isLoading}
+          className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-navy-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all disabled:opacity-50 self-start sm:self-auto"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-teal-400' : ''}`} />
+          <span>Refresh Inspector</span>
+        </button>
       </div>
 
       {/* Critical Protocol Governance Notice */}
@@ -80,41 +135,50 @@ export const AdminDashboardPage: React.FC = () => {
           <p className="text-xs text-slate-400 mt-0.5">Read-only audit view of all deployed borrower contracts</p>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-navy-950 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              <tr>
-                <th className="py-4 px-6">ID & Proposal</th>
-                <th className="py-4 px-6">Borrower</th>
-                <th className="py-4 px-6">Lender</th>
-                <th className="py-4 px-6">Principal</th>
-                <th className="py-4 px-6">Collateral</th>
-                <th className="py-4 px-6">APR</th>
-                <th className="py-4 px-6">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-300">
-              {MOCK_LOANS.map((loan) => (
-                <tr key={loan.id} className="hover:bg-slate-850/50 transition-colors">
-                  <td className="py-4 px-6">
-                    <span className="font-bold text-white">{loan.title}</span>
-                    <span className="text-xs text-slate-500 font-mono block">#{loan.id}</span>
-                  </td>
-                  <td className="py-4 px-6 font-mono text-xs text-slate-300">{formatAddress(loan.borrower)}</td>
-                  <td className="py-4 px-6 font-mono text-xs text-slate-300">
-                    {loan.lender ? formatAddress(loan.lender) : <span className="text-slate-500 italic">None</span>}
-                  </td>
-                  <td className="py-4 px-6 font-bold text-white">{loan.principalAmount} ETH</td>
-                  <td className="py-4 px-6 text-teal-300 font-medium">{loan.collateralAmount} ETH</td>
-                  <td className="py-4 px-6 text-emerald-400 font-semibold">{(loan.interestRateBps / 100).toFixed(1)}%</td>
-                  <td className="py-4 px-6">
-                    <StatusBadge status={loan.status} size="sm" />
-                  </td>
+        {isLoading ? (
+          <div className="py-16 flex flex-col items-center justify-center space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-teal-400" />
+            <p className="text-sm text-slate-400">Loading global registry from smart contract...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-navy-950 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <tr>
+                  <th className="py-4 px-6">ID & Proposal</th>
+                  <th className="py-4 px-6">Borrower</th>
+                  <th className="py-4 px-6">Lender</th>
+                  <th className="py-4 px-6">Principal</th>
+                  <th className="py-4 px-6">Repaid</th>
+                  <th className="py-4 px-6">APR</th>
+                  <th className="py-4 px-6">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-800 text-slate-300">
+                {loans.map((loan) => (
+                  <tr key={loan.id} className="hover:bg-slate-850/50 transition-colors">
+                    <td className="py-4 px-6">
+                      <span className="font-bold text-white">{loan.title}</span>
+                      <span className="text-xs text-slate-500 font-mono block">#{loan.id}</span>
+                    </td>
+                    <td className="py-4 px-6 font-mono text-xs text-slate-300">{formatAddress(loan.borrower)}</td>
+                    <td className="py-4 px-6 font-mono text-xs text-slate-300">
+                      {loan.lender ? formatAddress(loan.lender) : <span className="text-slate-500 italic">None</span>}
+                    </td>
+                    <td className="py-4 px-6 font-bold text-white">{loan.principalAmount} ETH</td>
+                    <td className="py-4 px-6 text-teal-300 font-medium">{loan.repaidAmount} ETH</td>
+                    <td className="py-4 px-6 text-emerald-400 font-semibold">
+                      {(loan.interestRateBps / 100).toFixed(1)}%
+                    </td>
+                    <td className="py-4 px-6">
+                      <StatusBadge status={loan.status} size="sm" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Protocol Health & Security Checklist */}
@@ -139,7 +203,7 @@ export const AdminDashboardPage: React.FC = () => {
               <CheckCircle className="w-4 h-4" /> Autonomous Escrow
             </span>
             <p className="text-slate-400 leading-relaxed">
-              Collateral is locked into contract storage upon loan request creation; release requires full payment or liquidation.
+              Funds are programmatically locked in contract storage; payments flow directly between borrower and lender.
             </p>
           </div>
 
