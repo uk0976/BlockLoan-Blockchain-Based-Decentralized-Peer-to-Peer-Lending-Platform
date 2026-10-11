@@ -1,54 +1,94 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from fastapi.responses import JSONResponse
+from typing import Dict, Any
 
 from app.core.config import settings
-from app.database.session import engine, Base, get_db
-from app.schemas.loan import HealthResponse, LoanResponse
-from app.services.blockchain import blockchain_service
+from app.database.database import engine, Base
+from app.schemas.loan import HealthResponse
+from app.services.blockchain_service import blockchain_service
+from app.api import api_router
 
 # Initialize SQLite database schema
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="Backend API and On-chain Event Indexer for BlockLoan Decentralized Lending Platform",
+    description="Backend API and On-Chain Event Indexer for BlockLoan Peer-to-Peer Lending Platform",
     version="0.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-# Configure CORS for local development
+# CORS configuration restricted to authorized frontend origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 
+# =============================================================================
+# EXCEPTION HANDLERS
+# =============================================================================
+
+@app.exception_handler(ConnectionError)
+async def connection_error_handler(request: Request, exc: ConnectionError):
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": str(exc), "type": "BlockchainConnectionError"},
+    )
+
+
+@app.exception_handler(LookupError)
+async def lookup_error_handler(request: Request, exc: LookupError):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": str(exc), "type": "NotFoundError"},
+    )
+
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": str(exc), "type": "ValidationError"},
+    )
+
+
+# =============================================================================
+# TOP-LEVEL HEALTH & DIAGNOSTIC ENDPOINTS
+# =============================================================================
+
 @app.get("/api/health", response_model=HealthResponse, tags=["Health"])
 def health_check():
-    """Health check endpoint to verify backend status and blockchain node connectivity."""
-    is_chain_live = blockchain_service.is_connected()
+    """
+    Health check endpoint to verify backend operational status,
+    RPC connectivity, and contract deployment.
+    """
+    is_connected = blockchain_service.is_connected()
+    chain_id = blockchain_service.get_chain_id() if is_connected else None
+    contract_deployed = blockchain_service.is_contract_deployed() if is_connected else False
+    contract_address = blockchain_service.get_contract_address()
+
     return HealthResponse(
         status="ok",
         project="BlockLoan",
-        blockchain_connected=is_chain_live,
-        version="0.1.0"
+        blockchain_connected=is_connected,
+        chain_id=chain_id,
+        contract_deployed=contract_deployed,
+        contract_address=contract_address,
+        version="0.1.0",
     )
 
 
 @app.get("/api/blockchain/status", tags=["Blockchain"])
 def get_blockchain_status() -> Dict[str, Any]:
-    """Detailed diagnosis of local Hardhat node, chain ID, and contract deployment."""
+    """Detailed diagnostics of local node, chain ID, and contract."""
     return blockchain_service.get_status_overview()
 
 
-@app.get("/api/loans", response_model=List[LoanResponse], tags=["Loans"])
-def list_cached_loans(db: Session = Depends(get_db)):
-    """
-    List indexed loans cached from on-chain events.
-    (Detailed indexing service will be populated in subsequent phase).
-    """
-    return []
+# Mount feature routers under /api
+app.include_router(api_router)

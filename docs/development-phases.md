@@ -37,8 +37,13 @@
 
 ---
 
-## Phase 5: Backend Indexer, REST API & SQLite Synchronization
-- [ ] Build background event listener service using Web3.py listening for `LoanCreated`, `LoanFunded`, `RepaymentMade`, `LoanCompleted`, and `LoanDefaulted`.
-- [ ] Store synchronized loan records in SQLite via SQLAlchemy.
-- [ ] Expose RESTful endpoints for cached query acceleration and platform statistics.
+## Phase 5: Backend REST API, Web3.py Service & SQLite Storage
+- [x] Build modular FastAPI application with routers for `/api/loans`, `/api/repayments`, `/api/users`, `/api/admin`, and `/api/health`.
+- [x] Implement `BlockchainService` via Web3.py v8 reading on-chain loans, contract counts, transaction receipts, and decoding contract events (`LoanCreated`, `LoanFunded`, `RepaymentMade`, `LoanCompleted`, `LoanDefaulted`, `LoanCancelled`).
+- [x] Add robust node diagnostics with error detection for offline RPC, chain ID mismatch, and undeployed contract address.
+- [x] Configure SQLite persistence via SQLAlchemy models (`CachedLoan`, `LoanMetadata`, `UserProfile`, `CachedEventLog`) without treating cached data as live blockchain state.
+- [x] Implement Pydantic v2 schemas with Ethereum address and hash validators.
+- [x] Maintain zero custodial private keys, strictly read-only node client, and CORS whitelist for frontend (`5173`).
+- [x] Add comprehensive test suite in `backend/tests/` with 26 tests (25 passing, 1 live integration test for running node).
+
 

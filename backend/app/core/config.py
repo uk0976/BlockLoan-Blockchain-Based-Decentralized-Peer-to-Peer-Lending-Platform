@@ -11,9 +11,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./blockloan.db"
 
-    # Blockchain
+    # Blockchain (Hardhat local network default)
     BLOCKCHAIN_RPC_URL: str = "http://127.0.0.1:8545"
     BLOCKLOAN_CONTRACT_ADDRESS: str = ""
+    EXPECTED_CHAIN_ID: int = 31337
 
     # Security: CORS
     CORS_ORIGINS: List[str] = [

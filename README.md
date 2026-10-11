@@ -161,15 +161,21 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-### Step 6: Start Backend API (FastAPI)
+### Step 6: Start Backend API (FastAPI) & Run Tests
 Open **Terminal 4 (PowerShell)**:
 ```powershell
 cd "c:\Users\Umer Khan\OneDrive\Desktop\BT Mini Project\backend"
-.\venv\Scripts\activate
-uvicorn app.main:app --reload --port 8000
+
+# Run pytest test suite
+& .\venv\Scripts\python.exe -m pytest -v
+
+# Start FastAPI server
+& .\venv\Scripts\uvicorn.exe app.main:app --reload --port 8000
 ```
-- API Docs: `http://127.0.0.1:8000/docs`
+- Interactive API Swagger UI: `http://127.0.0.1:8000/docs`
+- Health & Connectivity Check: `http://127.0.0.1:8000/api/health`
 - Node Diagnostics: `http://127.0.0.1:8000/api/blockchain/status`
+- Platform Admin Stats: `http://127.0.0.1:8000/api/admin/statistics`
 
 ---
 
@@ -195,7 +201,8 @@ In MetaMask &rarr; **Add Account** &rarr; **Import Account**:
 - **Phase 2 (Complete)**: Secure Solidity smart contract (`BlockLoan.sol`) with 23 passing unit tests.
 - **Phase 3 (Complete)**: Local blockchain deployment pipeline, MetaMask configuration, demo seeding, and verification audit.
 - **Phase 4 (Complete)**: Full frontend-to-contract Web3 integration with Ethers.js v6 & MetaMask (real on-chain loan creation, peer funding, partial/full repayment, and event log querying).
-- **Phase 5 (Upcoming)**: Web3.py backend event indexing service and SQLite sync.
+- **Phase 5 (Complete)**: Python FastAPI backend with Web3.py v8, SQLite persistence, and 26 test suite cases.
+
 
 ---
 
