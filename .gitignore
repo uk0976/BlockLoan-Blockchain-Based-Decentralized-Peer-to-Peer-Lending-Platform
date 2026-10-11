@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+package-lock.json.bak
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python / Backend
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite
+*.sqlite3
+*.db
+.pytest_cache/
+
+# Blockchain / Hardhat
+blockchain/artifacts/
+blockchain/cache/
+blockchain/typechain/
+blockchain/typechain-types/
+
+# Frontend / Vite
+frontend/dist/
+frontend/dist-ssr/
+frontend/.turbo/
+
+# Environment Variables & Secrets (CRITICAL: NEVER COMMIT)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+keystore/
+secrets.json
+
+# IDE & OS Files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

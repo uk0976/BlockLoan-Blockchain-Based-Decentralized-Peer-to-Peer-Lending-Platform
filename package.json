@@ -1,0 +1,33 @@
+{
+  "name": "blockloan",
+  "version": "0.1.0",
+  "description": "Blockchain-Based Decentralized Peer-to-Peer Lending Platform",
+  "private": true,
+  "workspaces": [
+    "blockchain",
+    "frontend"
+  ],
+  "scripts": {
+    "blockchain:node": "cd blockchain && npx hardhat node",
+    "blockchain:compile": "cd blockchain && npx hardhat compile",
+    "blockchain:test": "cd blockchain && npx hardhat test",
+    "blockchain:deploy:local": "cd blockchain && npx hardhat run scripts/deploy.js --network localhost",
+    "backend:install": "cd backend && pip install -r requirements.txt",
+    "backend:dev": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "solidity",
+    "p2p-lending",
+    "defi",
+    "smart-contracts",
+    "hardhat",
+    "react",
+    "fastapi"
+  ],
+  "author": "uk0976",
+  "license": "MIT"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "blockloan-blockchain",
+  "version": "0.1.0",
+  "description": "Smart contracts and deployment scripts for BlockLoan P2P Lending Platform",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "clean": "hardhat clean"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.18"
+  }
+}
