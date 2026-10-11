@@ -27,6 +27,7 @@ blockchain/typechain-types/
 frontend/dist/
 frontend/dist-ssr/
 frontend/.turbo/
+*.tsbuildinfo
 
 # Environment Variables & Secrets (CRITICAL: NEVER COMMIT)
 .env

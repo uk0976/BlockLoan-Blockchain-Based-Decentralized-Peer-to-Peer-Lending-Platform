@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ShieldCheck, Wallet, ArrowRightLeft, Layers, Landmark, Database } from 'lucide-react';
 
 export default function App() {
